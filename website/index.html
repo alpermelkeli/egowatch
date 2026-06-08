@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ego Takip: EgoWatch — Ankara Ulaşım</title>
+<meta name="description" content="Ego Takip (EgoWatch): Ankara EGO otobüs, metro ve Ankaray seferlerini anlık takip edin.">
+<style>
+  :root{
+    --bg:#000;--surface:#141417;--accent:#c70d1c;--accent-bright:#ff3b4a;
+    --text:#f4f4f5;--muted:#a1a1aa;--border:#2a2a2e;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    background:radial-gradient(1200px 600px at 50% -10%,#1a0306 0%,#000 60%);color:var(--text);
+    line-height:1.6;-webkit-font-smoothing:antialiased;min-height:100vh}
+  .wrap{max-width:760px;margin:0 auto;padding:80px 20px 80px;text-align:center}
+  .logo{width:84px;height:84px;border-radius:20px;background:linear-gradient(160deg,var(--accent-bright),var(--accent));
+    display:inline-flex;align-items:center;justify-content:center;font-size:40px;margin-bottom:24px;
+    box-shadow:0 12px 40px rgba(199,13,28,.35)}
+  h1{font-size:38px;font-weight:800;letter-spacing:-1px}
+  .tag{color:var(--muted);font-size:18px;margin-top:10px}
+  .desc{color:var(--muted);max-width:520px;margin:22px auto 0}
+  .features{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:14px;margin:44px 0}
+  .feat{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:20px;text-align:left}
+  .feat .ico{font-size:22px}
+  .feat h3{font-size:15px;margin:10px 0 4px}
+  .feat p{font-size:13px;color:var(--muted)}
+  .links{display:flex;gap:14px;justify-content:center;flex-wrap:wrap;margin-top:8px}
+  .links a{background:var(--surface);border:1px solid var(--border);color:var(--text);
+    padding:12px 24px;border-radius:12px;text-decoration:none;font-weight:600;font-size:15px}
+  .links a:hover{border-color:var(--accent)}
+  footer{margin-top:56px;font-size:13px;color:var(--muted)}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="logo">🚌</div>
+  <h1>Ego Takip: EgoWatch</h1>
+  <p class="tag">Ankara'da otobüs, metro ve durak takibi</p>
+  <p class="desc">Durak numaranızı girin, yaklaşan EGO otobüslerini ve tahmini varış sürelerini anında görün. Metro ve Ankaray sefer saatleri, favori durak ve hatlar, Apple Watch desteğiyle.</p>
+
+  <div class="features">
+    <div class="feat"><div class="ico">📍</div><h3>Otobüs Nerede</h3><p>5 haneli durak numarasıyla yaklaşan otobüsleri ve varış sürelerini anlık görün.</p></div>
+    <div class="feat"><div class="ico">🚇</div><h3>Hat & Sefer Saatleri</h3><p>Otobüs, metro ve Ankaray hatlarının güzergah ve saatlerini inceleyin.</p></div>
+    <div class="feat"><div class="ico">⭐</div><h3>Favoriler</h3><p>Sık kullandığınız durak ve hatları kaydedin, tek dokunuşla sorgulayın.</p></div>
+    <div class="feat"><div class="ico">⌚</div><h3>Apple Watch</h3><p>Favori durak ve hatlarınızı doğrudan bileğinizden kontrol edin.</p></div>
+  </div>
+
+  <div class="links">
+    <a href="support.html">Destek</a>
+    <a href="privacy.html">Gizlilik Politikası</a>
+  </div>
+
+  <footer>
+    Bağımsız bir uygulamadır; resmi bir EGO ürünü değildir. Veriler ego.gov.tr üzerinden alınır.<br>
+    © 2026 Alper Melkeli
+  </footer>
+</div>
+</body>
+</html>
