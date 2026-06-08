@@ -108,7 +108,7 @@ open "ios/egowatch.xcodeproj"   # veya " .xcodeproj"
 
 ## Depo düzeni
 
-Bu **monorepo** uygulamayı ve yardımcı dosyaları içerir. Web sitesi ayrı bir depoda yaşar ve buraya **submodule** olarak bağlıdır (URL'i sabit tutmak için):
+Bu **monorepo** uygulamayı, yardımcı dosyaları ve web sitesini içerir:
 
 ```
 egowatch/
@@ -116,12 +116,12 @@ egowatch/
 ├── screenshots/        # App Store pazarlama görselleri (iPhone 6.9" + Apple Watch)
 ├── metadata-current/   # App Store Connect liste metası (tr)
 ├── docs/               # EGO API notları ve örnek yanıtlar
-└── website/            # submodule → github.com/alpermelkeli/egowatch-site (GitHub Pages)
+└── website/            # Web sitesi kaynağı (gizlilik & destek sayfaları)
 ```
 
-> Submodule'lü klonlamak için: `git clone --recursive` veya klon sonrası `git submodule update --init`.
+Web sitesi `website/` klasöründen düzenlenir ve `gh-pages` dalı üzerinden GitHub Pages ile yayınlanır.
 
-- **Web sitesi:** https://alpermelkeli.github.io/egowatch-site/ ([gizlilik](https://alpermelkeli.github.io/egowatch-site/privacy.html) · [destek](https://alpermelkeli.github.io/egowatch-site/support.html))
+- **Web sitesi:** https://alpermelkeli.github.io/egowatch/ ([gizlilik](https://alpermelkeli.github.io/egowatch/privacy.html) · [destek](https://alpermelkeli.github.io/egowatch/support.html))
 
 ---
 
