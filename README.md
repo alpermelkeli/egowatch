@@ -22,7 +22,7 @@ EGO otobüs, metro ve Ankaray hatlarını tek bir yerden takip edin: durağa yak
 - **Hat & Sefer Saatleri** — Otobüs, metro ve Ankaray hatlarını arayın; kalkış noktası, güzergah, mesafe, sefer süresi ve hafta içi / Cumartesi / Pazar saatlerini görüntüleyin.
 - **Geçtiği Duraklar** — Bir hattın tüm güzergahını ve durduğu durakları sırasıyla inceleyin.
 - **Favoriler** — Sık kullandığınız durak ve hatları cihazda saklayın, tek dokunuşla anında sorgulayın.
-- **Apple Watch** — En sevdiğiniz durak ve hatları doğrudan bileğinizden kontrol edin.
+- **Apple Watch** — En çok kullandığınız durak ve hatları doğrudan bileğinizden kontrol edin.
 - **Gizlilik odaklı** — Konum izni istemez, hesap gerektirmez, veri toplamaz. Reklamsız, koyu temalı arayüz.
 
 ---
