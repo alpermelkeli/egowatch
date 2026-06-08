@@ -1,0 +1,34 @@
+# macOS
+.DS_Store
+
+# Node (appstore-screenshots studio)
+node_modules/
+.next/
+out/
+*.tsbuildinfo
+next-env.d.ts
+
+# Xcode
+xcuserdata/
+*.xcuserstate
+build/
+DerivedData/
+*.xcarchive
+*.ipa
+
+# App Store Connect keys / signing — NEVER commit
+*.p8
+*.p12
+*.mobileprovision
+*.cer
+AuthKey_*
+ApiKey_*
+
+# asc CLI local state/reports
+.asc/
+
+# Local Claude Code settings
+.claude/
+
+# Logs
+*.log
