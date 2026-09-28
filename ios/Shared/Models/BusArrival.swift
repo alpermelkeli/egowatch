@@ -2,21 +2,23 @@
 //  BusArrival.swift
 //  egowatch (Shared)
 //
-//  `/otobusnerede` yanıtındaki tek bir `.bus-card` bloğunu temsil eder.
+//  `/otobusnerede/sorgula` yanıtındaki tek bir `.bus-card` bloğunu temsil eder.
 //
-//  Gerçek HTML (docs/api-samples/otobusnerede_10135.html):
+//  Güncel HTML (Eylül 2026, bkz. docs/ego-api.md):
 //    <div class="bus-card">
-//      <div class="route-badge">590</div>
+//      <div class="route-badge">502</div>            (ÖHO: route-badge-ozel)
 //      <div class="route-main">
-//        <div class="route-title">KORU METRO İST.-YAŞAMKENT</div>
-//        <div class="route-meta">06 BD 0863, [07-501], Hız:0 km, Solo, Engelli, Bisiklet Aparatı</div>
+//        <div class="route-title">KAHRAMANKAZAN-SIHHİYE</div>
+//        <div class="route-meta">06 BK 0928- [08-525]</div>
 //      </div>
 //      <div class="eta">
-//        <div class="eta-mins">14 dk</div>
-//        <div class="eta-queue">59/44</div>
+//        <div class="eta-mins">14dk 23sn</div>       ("Geliyor" / "Geldi" → 0 dk)
+//        <div class="eta-queue">60/84</div>
 //      </div>
 //    </div>
 //
+//  Eski biçimde route-meta hız/özellik de içeriyordu ("06 BD 0863, [07-501], Hız:0 km, Solo, Engelli");
+//  bu alanlar artık gelmediğinde speedKmh nil, features boş olur.
 //  Canlı olmayan varyantta route-meta "Sonraki Hareket Saati İlk Duraktan 16:11 / 2 dk Sonra"
 //  şeklindedir ve eta alanları boştur.
 //
