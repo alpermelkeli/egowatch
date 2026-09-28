@@ -12,7 +12,17 @@ nonisolated enum EGOHTMLParser {
 
     // MARK: - Otobüs Nerede
 
-    /// `/otobusnerede` yanıtını ETA'ya göre sıralı BusArrival listesine çevirir.
+    /// `/otobusnerede` sayfasındaki `bus-form`'un durak numarası alanının adını döndürür.
+    /// Ad her sayfa yüklemesinde rastgele üretilir (örn. `name="5615486279"`).
+    static func parseBusFormFieldName(_ html: String) -> String? {
+        guard let formStart = html.range(of: "bus-form") else { return nil }
+        let formEnd = html.range(of: "</form>", range: formStart.upperBound..<html.endIndex)?.lowerBound
+            ?? html.endIndex
+        let form = String(html[formStart.lowerBound..<formEnd])
+        return firstMatch(#"<input(?![^>]*type="hidden")[^>]*\bname="([^"]+)""#, in: form)
+    }
+
+    /// `/otobusnerede/sorgula` yanıtını ETA'ya göre sıralı BusArrival listesine çevirir.
     static func parseBusArrivals(_ html: String) -> [BusArrival] {
         let badges = allCaptures(#"route-badge[^>]*>([^<]*)"#, in: html)
         let titles = allCaptures(#"route-title[^>]*>([^<]*)"#, in: html)
@@ -50,7 +60,9 @@ nonisolated enum EGOHTMLParser {
         return arrivals.sorted { $0.sortMinutes < $1.sortMinutes }
     }
 
-    /// route-meta metnini ("06 BD 0863, [07-501], Hız:0 km, Solo, Engelli, Bisiklet Aparatı") ayrıştırır.
+    /// route-meta metnini ayrıştırır. İki biçim görülmüştür:
+    ///   - güncel: "06 HO 2297- [37-105]"
+    ///   - eski:   "06 BD 0863, [07-501], Hız:0 km, Solo, Engelli, Bisiklet Aparatı"
     private static func parseLiveInfo(meta: String, etaText: String, queueText: String) -> BusArrival.LiveInfo {
         let comps = meta.components(separatedBy: ",")
             .map { $0.trimmingCharacters(in: .whitespaces) }
@@ -64,6 +76,10 @@ nonisolated enum EGOHTMLParser {
         for (index, comp) in comps.enumerated() {
             if let ref = firstMatch(#"\[([^\]]+)\]"#, in: comp) {
                 lineRef = ref
+                // Güncel biçimde plaka aynı parçada, "[" öncesinde ("06 HO 2297- [37-105]").
+                let prefix = comp[..<(comp.firstIndex(of: "[") ?? comp.startIndex)]
+                    .trimmingCharacters(in: CharacterSet(charactersIn: " -"))
+                if index == 0, !prefix.isEmpty { plate = prefix }
             } else if comp.localizedCaseInsensitiveContains("Hız") {
                 speed = firstInt(comp)
             } else if index == 0 {
@@ -75,7 +91,7 @@ nonisolated enum EGOHTMLParser {
 
         return BusArrival.LiveInfo(
             etaText: etaText,
-            etaMinutes: firstInt(etaText),
+            etaMinutes: etaMinutes(etaText),
             queueText: queueText.isEmpty ? nil : queueText,
             plate: plate,
             lineRef: lineRef,
@@ -85,10 +101,23 @@ nonisolated enum EGOHTMLParser {
         )
     }
 
+    /// "13dk 3sn" → 13, "Geliyor"/"Geldi" → 0.
+    private static func etaMinutes(_ text: String) -> Int? {
+        if let minutes = firstInt(text) { return minutes }
+        let lower = text.lowercased(with: Locale(identifier: "tr_TR"))
+        return (lower.hasPrefix("geliyor") || lower.hasPrefix("geldi")) ? 0 : nil
+    }
+
     // MARK: - Hat Listesi
 
-    /// `/AjaxData/HatListesi*` yanıtını BusLine listesine çevirir. value="0" (başlık) atlanır.
+    /// `/HareketSaatleri` sayfasındaki ilgili `<select>` (örn. `#hat_liste_otobus`) seçeneklerini
+    /// BusLine listesine çevirir. value="0" (başlık) atlanır.
     static func parseLineList(_ html: String, type: TransitType) -> [BusLine] {
+        guard let selectStart = html.range(of: #"id="\#(type.lineListSelectID)""#) else { return [] }
+        let selectEnd = html.range(of: "</select>", range: selectStart.upperBound..<html.endIndex)?.lowerBound
+            ?? html.endIndex
+        let html = String(html[selectStart.upperBound..<selectEnd])
+
         let pattern = #"<option value="([^"]+)"[^>]*>([^<]*)</option>"#
         guard let regex = try? NSRegularExpression(pattern: pattern) else { return [] }
         let range = NSRange(html.startIndex..., in: html)

@@ -10,130 +10,88 @@ Ankara EGO Genel Müdürlüğü web sitesinden elde edilen API dokümantasyonu.
 
 Belirtilen durak numarasına yaklaşan otobüsleri ve tahmini varış sürelerini döndürür.
 
-```
-POST /otobusnerede
-Content-Type: application/x-www-form-urlencoded
-```
+> ⚠️ **Eylül 2026 değişikliği:** Eski `POST /otobusnerede` (`durak_no=...`) artık
+> "YAPILAN İŞLEMDE HATA OLUŞTU" sayfası döndürüyor. Sorgu artık üç adımlı ve
+> dinamik token'lı. Sitenin bunu yapan JS'i `modernizr.min.js` dosyasının sonuna
+> gizlenmiş (obfuscated) durumda.
 
-**Request Body:**
+**Akış** (üç istek de aynı çerezleri — `ASP.NET_SessionId` vb. — paylaşmalı):
 
-| Alan | Tip | Açıklama |
-|------|-----|----------|
-| `durak_no` | string | 5 haneli durak numarası |
+1. `GET /otobusnerede` → sayfadaki formdan durak alanının **rastgele** adı okunur:
+   ```html
+   <form id="5615486279" class="bus-form" name="5615486279" method="post" action="/otobusnerede/sorgula">
+     <input type="hidden" id="guvenlikToken" name="__RequestVerificationToken" value="...">
+     <input type="text" id="5615486279" autocomplete="off" name="5615486279">
+   ```
+   Sayfadaki `__RequestVerificationToken` değeri **kullanılmaz**; JS onu 2. adımdaki token ile değiştirir.
+2. `GET /Security/GetDynamicToken` — header `X-Custom-Req: JS-Tetikleme` zorunlu.
+   Yanıt: `{"success":true,"token":"BzDF_PBe..."}`
+3. `POST /otobusnerede/sorgula` (`application/x-www-form-urlencoded`):
+   `__RequestVerificationToken=<token>&<alan_adı>=<durak_no>`
 
-**Örnek İstek:**
+**Örnek (curl):**
 ```bash
-curl -X POST https://www.ego.gov.tr/otobusnerede \
-  -H "Content-Type: application/x-www-form-urlencoded" \
+curl -s -c jar -b jar https://www.ego.gov.tr/otobusnerede > form.html
+FIELD=$(grep -oE 'class="bus-form" name="[0-9]+"' form.html | grep -oE '[0-9]+')
+TOKEN=$(curl -s -c jar -b jar -H "X-Custom-Req: JS-Tetikleme" \
+  https://www.ego.gov.tr/Security/GetDynamicToken | sed -E 's/.*"token":"([^"]+)".*/\1/')
+curl -s -c jar -b jar -X POST https://www.ego.gov.tr/otobusnerede/sorgula \
   -H "Referer: https://www.ego.gov.tr/otobusnerede" \
-  -d "durak_no=10135"
+  --data "__RequestVerificationToken=$TOKEN&$FIELD=10135"
 ```
 
-**Response:** HTML sayfa. İçinden parse edilecek alanlar:
-
-| CSS Sınıfı | Açıklama | Örnek |
-|------------|----------|-------|
-| `.eta-mins` | Tahmini varış süresi | `6 dk` |
-| `.eta-queue` | `durak_sırası/toplam_durak` formatında konum | `59/52` |
-| `.route-meta` | Araç detayı: plaka, hat, hız, tip | `06 DU 3524, [12-570], Hız:8 km, Körüklü, Engelli` |
-
-**Örnek Response Parse (Python):**
-```python
-import requests, re
-
-resp = requests.post(
-    "https://www.ego.gov.tr/otobusnerede",
-    data={"durak_no": "10135"},
-    headers={"Referer": "https://www.ego.gov.tr/otobusnerede"}
-)
-
-html = resp.text
-etas   = re.findall(r'eta-mins[^>]+title="([^"]+)"[^>]*>([^<]*)', html)
-queues = re.findall(r'eta-queue[^>]+title="([^"]+)"[^>]*>([^<]*)', html)
-metas  = re.findall(r'route-meta[^>]+>([^<]+)', html)
-
-for i, meta in enumerate(metas):
-    eta   = etas[i][1].strip()   if i < len(etas)   else "-"
-    queue = queues[i][1].strip() if i < len(queues) else "-"
-    print(f"ETA: {eta} | Konum: {queue} | Detay: {meta.strip()}")
-```
-
-**Gerçek DOM yapısı (doğrulandı — bkz. `docs/api-samples/otobusnerede_10135.html`):**
-Her otobüs bir `.bus-card` bloğudur; dokümandaki sade alan listesinden daha zengindir:
+**Yanıt DOM yapısı** (Eylül 2026):
 ```html
 <div class="bus-card">
-  <div class="route-badge">590</div>                         <!-- hat no -->
+  <div class="route-badge">502</div>                       <!-- ÖHO hatlarında: route-badge-ozel -->
   <div class="route-main">
-    <div class="route-title">KORU METRO İST.-YAŞAMKENT</div>  <!-- yön/başlık -->
-    <div class="route-meta">06 BD 0863, [07-501], Hız:0 km, Solo, Engelli, Bisiklet Aparatı</div>
+    <div class="route-title">KAHRAMANKAZAN-SIHHİYE</div>   <!-- ÖHO hatlarında: route-title-ozel -->
+    <div class="route-meta">06 BK 0928- [08-525]</div>     <!-- plaka- [araç no] -->
   </div>
   <div class="eta">
-    <div class="eta-mins">14 dk</div>
-    <div class="eta-queue">59/44</div>
+    <div class="eta-mins" title="Tahmini">14dk 23sn</div>  <!-- ya da "Geliyor" / "Geldi" -->
+    <div class="eta-queue" title="...">60/84</div>          <!-- otobüsün durak sırası / sizin durak sıranız -->
   </div>
 </div>
 ```
-Henüz ilk duraktan kalkmamış araçlarda `route-meta` yerine
-`Sonraki Hareket Saati İlk Duraktan 16:11 / 2 dk Sonra` yazar ve `eta-*` alanları boştur.
-Swift parser: `EGOHTMLParser.parseBusArrivals` (bloğa göre ayrıştırır, paralel diziye değil).
+- `route-meta` artık hız ve araç özelliklerini (Körüklü, Engelli, ...) içermiyor.
+  Parser eski virgüllü biçimi (`06 BD 0863, [07-501], Hız:0 km, Solo, ...`) de destekler.
+- Yaklaşan otobüs yoksa `bus-list` içinde kart olmaz; sadece IP ve saat görünür.
+- Kısa sürede çok sayıda sorgu atılırsa sunucu bir süre **boş liste** döndürebiliyor (HTTP 200).
+- Swift: `EGOAPIClient.busArrivals` (akış), `EGOHTMLParser.parseBusFormFieldName` / `parseBusArrivals`.
 
 **Notlar:**
 - Durak numarası 5 haneli olmalıdır.
 - Response HTML formatındadır, JSON değildir.
 - Veri gerçek zamanlıdır (canlı konum).
-- IP kısıtlaması yoktur.
 
 ---
 
 ## Hat Listesi
 
-Otobüs, metro ve Ankaray hatlarının listesini döndürür. Response `<option>` tagları içeren HTML'dir.
+> ⚠️ **Eylül 2026 değişikliği:** `/AjaxData/HatListesi*` endpoint'leri kaldırıldı (404).
+> Listeler artık `GET /HareketSaatleri` sayfasına gömülü üç `<select>` içinde geliyor.
 
 ```
-POST /AjaxData/HatListesiOtobus    → Otobüs hatları
-POST /AjaxData/HatListesiMetro     → Metro hatları
-POST /AjaxData/HatListesiAnkaray   → Ankaray hatları
-Content-Type: application/x-www-form-urlencoded
+GET /HareketSaatleri
 ```
 
-**Request Body:** Boş (body gönderilmeli, alan gerekmez)
+| `<select>` id | Tür |
+|---|---|
+| `hat_liste_otobus` (name `hat_no1`) | Otobüs |
+| `hat_liste_metro` (name `hat_no2`) | Metro |
+| `hat_liste_ankaray` (name `hat_no3`) | Ankaray |
 
-**Örnek İstek:**
-```bash
-curl -X POST https://www.ego.gov.tr/AjaxData/HatListesiOtobus \
-  -H "Content-Type: application/x-www-form-urlencoded" \
-  -H "Referer: https://www.ego.gov.tr/HareketSaatleri" \
-  -d " "
-```
-
-**Örnek Response:**
 ```html
-<option value="0" selected>OTOBÜS</option>
-<option value="101"> (101) - GÖLBAŞI-HAYMANA YOLU-BAHÇELİEVLER</option>
-<option value="101-1"> (101-1) - GÖLBAŞI-HAYMANA YOLU-BAHÇELİEVLER-KARAOĞLAN MAHALLESİ</option>
-...
+<select ... name="hat_no1" id="hat_liste_otobus">
+  <option value="0" selected>OTOBÜS</option><option value="101"> (101 ) - GÖLBAŞI-HAYMANA YOLU-BAHÇELİEVLER</option>...
+</select>
 ```
 
-**Örnek Response Parse (Python):**
-```python
-import requests, re
-
-resp = requests.post(
-    "https://www.ego.gov.tr/AjaxData/HatListesiOtobus",
-    data=" ",
-    headers={"Referer": "https://www.ego.gov.tr/HareketSaatleri"}
-)
-
-hatlar = re.findall(r'<option value="([^"]+)">([^<]+)</option>', resp.text)
-for value, label in hatlar:
-    print(f"{value}: {label.strip()}")
-```
-
-**Notlar (doğrulandı — bkz. `docs/api-samples/hatlistesi_otobus.html`):**
-- İlk satır başlıktır: `<option value="0" selected>OTOBÜS</option>` → `value="0"` atlanır.
-- Etiket formatı ` (101 ) - GÖLBAŞI-...` şeklindedir; ` (kod ) - ` öneki temizlenip hat adı alınır.
-- Türkçe karakterler numerik entity olarak gelir; decode gerekir.
-- Swift parser: `EGOHTMLParser.parseLineList`.
+**Notlar:**
+- İlk satır başlıktır (`value="0"`) → atlanır.
+- Etiket formatı ` (101 ) - GÖLBAŞI-...`; ` (kod ) - ` öneki temizlenip hat adı alınır.
+- Swift parser: `EGOHTMLParser.parseLineList` (select id'si `TransitType.lineListSelectID`).
 
 ---
 
@@ -188,5 +146,5 @@ curl -X POST https://www.ego.gov.tr/HareketSaatleri \
 
 **Notlar:**
 - Response HTML formatındadır, JSON değildir.
-- Hat numarası `/AjaxData/HatListesi*` endpoint'lerinden alınır.
+- Hat numarası `/HareketSaatleri` sayfasındaki `<select>` listelerinden alınır.
 - IP kısıtlaması yoktur.

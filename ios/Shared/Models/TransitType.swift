@@ -2,7 +2,7 @@
 //  TransitType.swift
 //  egowatch (Shared)
 //
-//  Ulaşım türü. Hat listesi endpoint'ini ve HareketSaatleri istek alanını belirler.
+//  Ulaşım türü. Hat listesi <select>'ini ve HareketSaatleri istek alanını belirler.
 //
 
 import Foundation
@@ -23,12 +23,12 @@ nonisolated enum TransitType: String, Codable, Sendable, CaseIterable, Identifia
         }
     }
 
-    /// `/AjaxData/HatListesi*` endpoint yolu.
-    var hatListesiPath: String {
+    /// `/HareketSaatleri` sayfasında hat listesini taşıyan `<select>` id'si.
+    var lineListSelectID: String {
         switch self {
-        case .otobus:  return "/AjaxData/HatListesiOtobus"
-        case .metro:   return "/AjaxData/HatListesiMetro"
-        case .ankaray: return "/AjaxData/HatListesiAnkaray"
+        case .otobus:  return "hat_liste_otobus"
+        case .metro:   return "hat_liste_metro"
+        case .ankaray: return "hat_liste_ankaray"
         }
     }
 

@@ -26,14 +26,36 @@ nonisolated struct EGOAPIClient: Sendable {
         guard trimmed.count == 5, trimmed.allSatisfy(\.isNumber) else {
             throw EGOAPIError.invalidStopNumber
         }
-        let html = try await fetchHTML(.busArrivals(stopNo: trimmed))
+        // 1) Form sayfası: her yüklemede değişen alan adı + oturum çerezleri.
+        let formHTML = try await fetchHTML(.busArrivalsForm)
+        guard let fieldName = EGOHTMLParser.parseBusFormFieldName(formHTML) else {
+            throw EGOAPIError.parsingFailed
+        }
+        // 2) Dinamik güvenlik token'ı.
+        let token = try await fetchDynamicToken()
+        // 3) Sorgu.
+        let html = try await fetchHTML(.busArrivals(stopNo: trimmed, fieldName: fieldName, token: token))
         return EGOHTMLParser.parseBusArrivals(html)
+    }
+
+    private struct DynamicTokenResponse: Decodable {
+        let success: Bool
+        let token: String?
+    }
+
+    private func fetchDynamicToken() async throws -> String {
+        let data = try await fetchData(.dynamicToken)
+        guard let response = try? JSONDecoder().decode(DynamicTokenResponse.self, from: data),
+              response.success, let token = response.token, !token.isEmpty else {
+            throw EGOAPIError.parsingFailed
+        }
+        return token
     }
 
     // MARK: - Hat Listesi
 
     func lineList(type: TransitType) async throws -> [BusLine] {
-        let html = try await fetchHTML(.lineList(type: type))
+        let html = try await fetchHTML(.lineList)
         let lines = EGOHTMLParser.parseLineList(html, type: type)
         guard !lines.isEmpty else { throw EGOAPIError.parsingFailed }
         return lines
@@ -54,13 +76,21 @@ nonisolated struct EGOAPIClient: Sendable {
     // MARK: - Ortak istek
 
     private func fetchHTML(_ endpoint: EGOEndpoint) async throws -> String {
+        let data = try await fetchData(endpoint)
+        // EGO sayfaları UTF-8'dir; bozuk baytlara karşı lossy decode.
+        guard let html = String(data: data, encoding: .utf8)
+                ?? String(data: data, encoding: .isoLatin1) else {
+            throw EGOAPIError.parsingFailed
+        }
+        return html
+    }
+
+    private func fetchData(_ endpoint: EGOEndpoint) async throws -> Data {
         let request = endpoint.makeRequest()
         let data: Data
         let response: URLResponse
         do {
             (data, response) = try await session.data(for: request)
-        } catch let error as URLError {
-            throw EGOAPIError.network(error.localizedDescription)
         } catch {
             throw EGOAPIError.network(error.localizedDescription)
         }
@@ -68,12 +98,6 @@ nonisolated struct EGOAPIClient: Sendable {
         if let http = response as? HTTPURLResponse, !(200...299).contains(http.statusCode) {
             throw EGOAPIError.server(statusCode: http.statusCode)
         }
-
-        // EGO sayfaları UTF-8'dir; bozuk baytlara karşı lossy decode.
-        guard let html = String(data: data, encoding: .utf8)
-                ?? String(data: data, encoding: .isoLatin1) else {
-            throw EGOAPIError.parsingFailed
-        }
-        return html
+        return data
     }
 }
