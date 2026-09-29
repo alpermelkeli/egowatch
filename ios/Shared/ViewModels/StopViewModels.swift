@@ -58,6 +58,11 @@ final class StopDetailViewModel: ObservableObject {
         errorMessage = nil
         do {
             arrivals = try await service.busArrivals(stopNo: stopNo)
+            #if os(iOS)
+            if isFavorite, SeenLinesStore.record(stopNo: stopNo, arrivals: arrivals) {
+                EgoShortcuts.refresh()
+            }
+            #endif
         } catch {
             errorMessage = error.localizedDescription
         }

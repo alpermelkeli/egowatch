@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<!-- Siri'nin uygulamayı Türkçe telaffuzla da tanıması için ek adlar
+	     ("Hey Siri, Ego Onur Sitesi durağında 590 kaç dakika"). -->
+	<key>INAlternativeAppNames</key>
+	<array>
+		<dict>
+			<key>INAlternativeAppName</key>
+			<string>Ego</string>
+			<key>INAlternativeAppNamePronunciationHint</key>
+			<string>ego</string>
+		</dict>
+		<dict>
+			<key>INAlternativeAppName</key>
+			<string>EgoWatch</string>
+			<key>INAlternativeAppNamePronunciationHint</key>
+			<string>ego voç</string>
+		</dict>
+	</array>
+</dict>
+</plist>
