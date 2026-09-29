@@ -12,17 +12,24 @@ nonisolated enum EGOHTMLParser {
 
     // MARK: - Otobüs Nerede
 
-    /// `/otobusnerede` sayfasındaki `bus-form`'un durak numarası alanının adını döndürür.
-    /// Ad her sayfa yüklemesinde rastgele üretilir (örn. `name="5615486279"`).
-    static func parseBusFormFieldName(_ html: String) -> String? {
-        guard let formStart = html.range(of: "bus-form") else { return nil }
+    /// `/otobusnerede` sayfasındaki `bus-form`'un gönderim yolunu ve durak alanının adını döndürür.
+    /// İkisi de her sayfa yüklemesinde değişir (örn. action "/otobusnerede/sorgu", name "5615486279").
+    /// Yalnızca `/otobusnerede` altındaki göreli yollar kabul edilir.
+    static func parseBusForm(_ html: String) -> EGOBusForm? {
+        guard let formTag = firstMatch(#"(<form[^>]*class="bus-form"[^>]*>)"#, in: html),
+              let action = firstMatch(#"action="([^"]+)""#, in: formTag)?.decodingHTMLEntities(),
+              action.hasPrefix("/otobusnerede"), !action.contains("//"),
+              let formStart = html.range(of: formTag) else { return nil }
         let formEnd = html.range(of: "</form>", range: formStart.upperBound..<html.endIndex)?.lowerBound
             ?? html.endIndex
         let form = String(html[formStart.lowerBound..<formEnd])
-        return firstMatch(#"<input(?![^>]*type="hidden")[^>]*\bname="([^"]+)""#, in: form)
+        guard let fieldName = firstMatch(#"<input(?![^>]*type="hidden")[^>]*\bname="([^"]+)""#, in: form) else {
+            return nil
+        }
+        return EGOBusForm(action: action, fieldName: fieldName)
     }
 
-    /// `/otobusnerede/sorgula` yanıtını ETA'ya göre sıralı BusArrival listesine çevirir.
+    /// Durak sorgusu yanıtını ETA'ya göre sıralı BusArrival listesine çevirir.
     static func parseBusArrivals(_ html: String) -> [BusArrival] {
         let badges = allCaptures(#"route-badge[^>]*>([^<]*)"#, in: html)
         let titles = allCaptures(#"route-title[^>]*>([^<]*)"#, in: html)

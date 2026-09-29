@@ -2,7 +2,7 @@
 //  BusArrival.swift
 //  egowatch (Shared)
 //
-//  `/otobusnerede/sorgula` yanıtındaki tek bir `.bus-card` bloğunu temsil eder.
+//  Otobüs Nerede sorgu yanıtındaki tek bir `.bus-card` bloğunu temsil eder.
 //
 //  Güncel HTML (Eylül 2026, bkz. docs/ego-api.md):
 //    <div class="bus-card">

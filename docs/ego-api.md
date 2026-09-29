@@ -17,7 +17,10 @@ Belirtilen durak numarasına yaklaşan otobüsleri ve tahmini varış sürelerin
 
 **Akış** (üç istek de aynı çerezleri — `ASP.NET_SessionId` vb. — paylaşmalı):
 
-1. `GET /otobusnerede` → sayfadaki formdan durak alanının **rastgele** adı okunur:
+1. `GET /otobusnerede` → sayfadaki formdan durak alanının **rastgele** adı ve **değişken**
+   gönderim yolu (`action`) okunur. `action` yüklemeden yüklemeye `/otobusnerede/sorgu` ile
+   `/otobusnerede/sorgula` arasında değişiyor; yanlış yola gönderilen sorgu hata vermez,
+   **boş liste** döner (HTTP 200).
    ```html
    <form id="5615486279" class="bus-form" name="5615486279" method="post" action="/otobusnerede/sorgula">
      <input type="hidden" id="guvenlikToken" name="__RequestVerificationToken" value="...">
@@ -26,16 +29,17 @@ Belirtilen durak numarasına yaklaşan otobüsleri ve tahmini varış sürelerin
    Sayfadaki `__RequestVerificationToken` değeri **kullanılmaz**; JS onu 2. adımdaki token ile değiştirir.
 2. `GET /Security/GetDynamicToken` — header `X-Custom-Req: JS-Tetikleme` zorunlu.
    Yanıt: `{"success":true,"token":"BzDF_PBe..."}`
-3. `POST /otobusnerede/sorgula` (`application/x-www-form-urlencoded`):
+3. `POST <action>` (`application/x-www-form-urlencoded`):
    `__RequestVerificationToken=<token>&<alan_adı>=<durak_no>`
 
 **Örnek (curl):**
 ```bash
 curl -s -c jar -b jar https://www.ego.gov.tr/otobusnerede > form.html
 FIELD=$(grep -oE 'class="bus-form" name="[0-9]+"' form.html | grep -oE '[0-9]+')
+ACTION=$(grep -oE '<form[^>]*class="bus-form"[^>]*>' form.html | sed -E 's/.*action="([^"]+)".*/\1/')
 TOKEN=$(curl -s -c jar -b jar -H "X-Custom-Req: JS-Tetikleme" \
   https://www.ego.gov.tr/Security/GetDynamicToken | sed -E 's/.*"token":"([^"]+)".*/\1/')
-curl -s -c jar -b jar -X POST https://www.ego.gov.tr/otobusnerede/sorgula \
+curl -s -c jar -b jar -X POST "https://www.ego.gov.tr$ACTION" \
   -H "Referer: https://www.ego.gov.tr/otobusnerede" \
   --data "__RequestVerificationToken=$TOKEN&$FIELD=10135"
 ```
@@ -57,8 +61,7 @@ curl -s -c jar -b jar -X POST https://www.ego.gov.tr/otobusnerede/sorgula \
 - `route-meta` artık hız ve araç özelliklerini (Körüklü, Engelli, ...) içermiyor.
   Parser eski virgüllü biçimi (`06 BD 0863, [07-501], Hız:0 km, Solo, ...`) de destekler.
 - Yaklaşan otobüs yoksa `bus-list` içinde kart olmaz; sadece IP ve saat görünür.
-- Kısa sürede çok sayıda sorgu atılırsa sunucu bir süre **boş liste** döndürebiliyor (HTTP 200).
-- Swift: `EGOAPIClient.busArrivals` (akış), `EGOHTMLParser.parseBusFormFieldName` / `parseBusArrivals`.
+- Swift: `EGOAPIClient.busArrivals` (akış), `EGOHTMLParser.parseBusForm` / `parseBusArrivals`.
 
 **Notlar:**
 - Durak numarası 5 haneli olmalıdır.
