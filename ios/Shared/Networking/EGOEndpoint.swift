@@ -7,7 +7,8 @@
 //  Otobüs Nerede sorgusu üç adımlıdır (bkz. docs/ego-api.md):
 //    1. GET  /otobusnerede                 → formun rastgele alan adı (`bus-form` name'i)
 //    2. GET  /Security/GetDynamicToken     → {"success":true,"token":"..."}
-//    3. POST /otobusnerede/sorgula         → __RequestVerificationToken=<token>&<alan>=<durak>
+//    3. POST <form action>                 → __RequestVerificationToken=<token>&<alan>=<durak>
+//       (action da değişkendir: "/otobusnerede/sorgu" ya da "/otobusnerede/sorgula")
 //  Adımlar aynı oturum çerezlerini (ASP.NET_SessionId) paylaşmalıdır.
 //
 
@@ -18,8 +19,8 @@ nonisolated enum EGOEndpoint: Sendable {
     case busArrivalsForm
     /// Form gönderiminden hemen önce alınan tek kullanımlık güvenlik token'ı.
     case dynamicToken
-    /// Asıl durak sorgusu.
-    case busArrivals(stopNo: String, fieldName: String, token: String)
+    /// Asıl durak sorgusu; `form` 1. adımda sayfadan okunur.
+    case busArrivals(stopNo: String, form: EGOBusForm, token: String)
     /// Hat listeleri artık HareketSaatleri sayfasına gömülü `<select>`'lerde gelir.
     case lineList
     case lineSchedule(lineNo: String, type: TransitType)
@@ -30,7 +31,7 @@ nonisolated enum EGOEndpoint: Sendable {
         switch self {
         case .busArrivalsForm:         return "/otobusnerede"
         case .dynamicToken:            return "/Security/GetDynamicToken"
-        case .busArrivals:             return "/otobusnerede/sorgula"
+        case .busArrivals(_, let form, _): return form.action
         case .lineList, .lineSchedule: return "/HareketSaatleri"
         }
     }
@@ -57,8 +58,8 @@ nonisolated enum EGOEndpoint: Sendable {
         switch self {
         case .busArrivalsForm, .dynamicToken, .lineList:
             return [:]
-        case .busArrivals(let stopNo, let fieldName, let token):
-            return ["__RequestVerificationToken": token, fieldName: stopNo]
+        case .busArrivals(let stopNo, let form, let token):
+            return ["__RequestVerificationToken": token, form.fieldName: stopNo]
         case .lineSchedule(let lineNo, let type):
             // hat_no1/2/3'ün hepsi gönderilir; sadece ilgili olan doldurulur.
             var fields = ["hat_no1": "", "hat_no2": "", "hat_no3": ""]
@@ -72,7 +73,8 @@ nonisolated enum EGOEndpoint: Sendable {
         var request = URLRequest(url: url)
         request.httpMethod = method
         request.setValue(referer, forHTTPHeaderField: "Referer")
-        request.timeoutInterval = 20
+        // Siri intent'leri kısa sürede cevap vermeli; takılan bağlantı erken kesilip yeniden denenir.
+        request.timeoutInterval = 8
 
         switch self {
         case .dynamicToken:
@@ -98,4 +100,12 @@ nonisolated enum EGOEndpoint: Sendable {
         allowed.insert(charactersIn: "-._")
         return value.addingPercentEncoding(withAllowedCharacters: allowed) ?? value
     }
+}
+
+/// `/otobusnerede` sayfasındaki sorgu formu: her yüklemede değişen gönderim yolu ve alan adı.
+nonisolated struct EGOBusForm: Sendable, Equatable {
+    /// Göreli yol, örn. "/otobusnerede/sorgu".
+    let action: String
+    /// Durak numarası alanının adı, örn. "5615486279".
+    let fieldName: String
 }

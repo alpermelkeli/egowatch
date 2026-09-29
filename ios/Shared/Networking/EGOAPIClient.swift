@@ -26,15 +26,25 @@ nonisolated struct EGOAPIClient: Sendable {
         guard trimmed.count == 5, trimmed.allSatisfy(\.isNumber) else {
             throw EGOAPIError.invalidStopNumber
         }
-        // 1) Form sayfası: her yüklemede değişen alan adı + oturum çerezleri.
+        do {
+            return try await fetchBusArrivals(stopNo: trimmed)
+        } catch EGOAPIError.network {
+            // Boşta kalmış (kopmuş) bir bağlantının yeniden kullanılması POST'u düşürebiliyor;
+            // token tek kullanımlık olduğu için akış baştan bir kez daha denenir.
+            return try await fetchBusArrivals(stopNo: trimmed)
+        }
+    }
+
+    private func fetchBusArrivals(stopNo: String) async throws -> [BusArrival] {
+        // 1) Form sayfası: her yüklemede değişen gönderim yolu ve alan adı + oturum çerezleri.
         let formHTML = try await fetchHTML(.busArrivalsForm)
-        guard let fieldName = EGOHTMLParser.parseBusFormFieldName(formHTML) else {
+        guard let form = EGOHTMLParser.parseBusForm(formHTML) else {
             throw EGOAPIError.parsingFailed
         }
         // 2) Dinamik güvenlik token'ı.
         let token = try await fetchDynamicToken()
         // 3) Sorgu.
-        let html = try await fetchHTML(.busArrivals(stopNo: trimmed, fieldName: fieldName, token: token))
+        let html = try await fetchHTML(.busArrivals(stopNo: stopNo, form: form, token: token))
         return EGOHTMLParser.parseBusArrivals(html)
     }
 

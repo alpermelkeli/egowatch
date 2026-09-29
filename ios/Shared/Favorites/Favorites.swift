@@ -68,12 +68,14 @@ final class FavoritesStore: ObservableObject {
         stops.insert(favorite, at: 0)
         saveStops()
         syncToPairedDevice()
+        refreshSiriParameters()
     }
 
     func removeStop(_ stopNo: String) {
         stops.removeAll { $0.stopNo == stopNo }
         saveStops()
         syncToPairedDevice()
+        refreshSiriParameters()
     }
 
     func addLine(_ line: BusLine, name: String) {
@@ -88,12 +90,14 @@ final class FavoritesStore: ObservableObject {
         lines.insert(favorite, at: 0)
         saveLines()
         syncToPairedDevice()
+        refreshSiriParameters()
     }
 
     func removeLine(_ line: BusLine) {
         lines.removeAll { $0.lineCode == line.code && $0.type == line.type }
         saveLines()
         syncToPairedDevice()
+        refreshSiriParameters()
     }
 
     func snapshot() -> FavoritesSnapshot {
@@ -106,6 +110,7 @@ final class FavoritesStore: ObservableObject {
         lines = snapshot.lines
         saveStops()
         saveLines()
+        refreshSiriParameters()
     }
 
     private func load() {
@@ -125,6 +130,13 @@ final class FavoritesStore: ObservableObject {
 
     private func saveLines() {
         defaults.set(try? JSONEncoder().encode(lines), forKey: linesKey)
+    }
+
+    /// Siri'nin tanıdığı durak/hat değerlerini tazeler (App Shortcuts yalnızca iPhone'da).
+    private func refreshSiriParameters() {
+        #if os(iOS)
+        EgoShortcuts.refresh()
+        #endif
     }
 
     private func syncToPairedDevice() {
